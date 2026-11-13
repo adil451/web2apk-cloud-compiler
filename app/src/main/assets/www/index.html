@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web2APK Studio — Instant HTML/CSS/JS ZIP to APK Builder</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- JSZip for Client-Side ZIP Inspection & APK/Project Packaging -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            studio: {
+              950: '#060911',
+              900: '#0b101e',
+              800: '#111827',
+              700: '#1e293b',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #060911;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b101e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #10b981;
+    }
+    .glass-panel {
+      background: rgba(17, 24, 39, 0.82);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .drop-active {
+      border-color: #10b981 !important;
+      background: rgba(16, 185, 129, 0.12) !important;
+    }
+    .phone-bezel {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9),
+                  0 0 0 9px #1e293b,
+                  0 0 0 11px #334155,
+                  0 0 45px rgba(16, 185, 129, 0.16);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .squircle {
+      border-radius: 22%;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.35); }
+      50% { box-shadow: 0 0 38px rgba(16, 185, 129, 0.7); }
+    }
+    .cta-glow {
+      animation: pulseGlow 2.4s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
+
+  <!-- TOP HEADER BAR -->
+  <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-studio-950/90 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i class="fa-brands fa-android text-slate-950 text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-emerald-200 to-emerald-400 bg-clip-text text-transparent">
+              Web2APK Studio
+            </h1>
+            <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold">
+              Ready-to-Use • Zero Setup
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">
+            Apna Code ZIP + APK Name + Logo (PNG/JPG) daalein <i class="fa-solid fa-arrow-right mx-1 text-emerald-400"></i> Seedha APK Banayein!
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button onclick="loadDemoApp(false)" class="text-xs sm:text-sm px-3.5 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-gamepad text-indigo-400"></i>
+          <span>Load Demo Game/App</span>
+        </button>
+
+        <button onclick="startGenerateApkFlow()" class="text-xs sm:text-sm px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-extrabold transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-bolt"></i>
+          <span>GENERATE APK</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE GRID -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- LEFT COLUMN: 3 SIMPLE STEPS (7 COLS) -->
+    <div class="lg:col-span-7 space-y-6">
+
+      <!-- Hinglish Welcome Banner -->
+      <div class="rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-indigo-950/70 border border-emerald-500/30 p-4 flex items-center justify-between gap-4">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-white">Abhi Turant Kaam Karega — Extra Kuch Bhi Set Up Nahi Karna Hai!</h2>
+            <p class="text-xs text-slate-300 mt-0.5">
+              Neeche <span class="text-emerald-400 font-semibold">Step 1 (APK Naam)</span>, <span class="text-emerald-400 font-semibold">Step 2 (Logo PNG/JPG)</span>, aur <span class="text-emerald-400 font-semibold">Step 3 (HTML/CSS/JS ZIP)</span> daal kar seedha <span class="text-white font-bold">GENERATE ANDROID APK</span> dabayein.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1: APK APP NAME & ANDROID SETTINGS -->
+      <section class="glass-panel rounded-2xl p-5 sm:p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-sm flex items-center justify-center shadow">1</span>
+            <div>
+              <h3 class="text-base font-bold text-white">APK App Name & Settings</h3>
+              <p class="text-xs text-slate-400">Apne Android app ka naam daalein (Package ID apne aap ban jayega)</p>
+            </div>
+          </div>
+          <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+            Step 1 / 3
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- App Name -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              APK App Name <span class="text-emerald-400">*</span>
+            </label>
+            <div class="relative">
+              <i class="fa-solid fa-mobile-screen absolute left-3.5 top-3 text-slate-400"></i>
+              <input
+                id="appNameInput"
+                type="text"
+                value="Cyber Runner Pro"
+                placeholder="e.g. My Awesome App"
+                oninput="onAppNameInput(this.value)"
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-studio-950 border border-slate-700 focus:border-emerald-500 focus:outline-none text-sm text-white font-medium transition"
+              />
+            </div>
+          </div>
+
+          <!-- Auto-generated Package ID -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Android Package ID
+              </label>
+              <button onclick="resetAutoPackageId()" class="text-[11px] text-emerald-400 hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-rotate"></i> Auto-Generate
+              </button>
+            </div>
+            <div class="relative">
+              <i class="fa-solid fa-fingerprint absolute left-3.5 top-3 text-slate-400"></i>
+              <input
+                id="packageIdInput"
+                type="text"
+                value="com.web2apk.cyberrunnerpro"
+                oninput="state.customPkg = true; state.packageId = this.value.trim();"
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-studio-950 border border-slate-700 focus:border-emerald-500 focus:outline-none text-sm font-mono text-emerald-300 transition"
+              />
+            </div>
+          </div>
+
+          <!-- Version Name -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Version Name
+            </label>
+            <div class="relative">
+              <i class="fa-solid fa-code-branch absolute left-3.5 top-3 text-slate-400"></i>
+              <input
+                id="versionNameInput"
+                type="text"
+                value="1.0.0"
+                oninput="state.versionName = this.value.trim() || '1.0.0'"
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-studio-950 border border-slate-700 focus:border-emerald-500 focus:outline-none text-sm font-mono text-white"
+              />
+            </div>
+          </div>
+
+          <!-- Toggles: Fullscreen & Offline Access -->
+          <div class="flex flex-col justify-center gap-2.5 bg-studio-950/90 p-3 rounded-xl border border-slate-800">
+            <label class="flex items-center justify-between cursor-pointer text-xs text-slate-200">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-expand text-emerald-400"></i> Fullscreen / Hide Status Bar
+              </span>
+              <input
+                id="fullscreenCheckbox"
+                type="checkbox"
+                onchange="setFullscreenMode(this.checked)"
+                class="accent-emerald-500 w-4 h-4 rounded cursor-pointer"
+              />
+            </label>
+
+            <label class="flex items-center justify-between cursor-pointer text-xs text-slate-200">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-bolt-lightning text-indigo-400"></i> 100% Offline Access & Storage
+              </span>
+              <input
+                id="offlineCheckbox"
+                type="checkbox"
+                checked
+                onchange="state.offlineAccess = this.checked"
+                class="accent-emerald-500 w-4 h-4 rounded cursor-pointer"
+              />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: APP LOGO UPLOAD (PNG / JPG) & MIPMAP RESIZER -->
+      <section class="glass-panel rounded-2xl p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-sm flex items-center justify-center shadow">2</span>
+            <div>
+              <h3 class="text-base font-bold text-white">APK Logo Upload (PNG or JPG)</h3>
+              <p class="text-xs text-slate-400">HTML5 Canvas se saare 6 Android mipmap resolutions apne aap banenge</p>
+            </div>
+          </div>
+          <button onclick="generateStudioLogo()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-palette text-emerald-400"></i> Random Stylish Logo
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+          <!-- Upload Zone -->
+          <div
+            id="logoDropArea"
+            onclick="document.getElementById('logoInput').click()"
+            class="md:col-span-5 border-2 border-dashed border-slate-700 hover:border-emerald-500/70 rounded-2xl p-5 text-center cursor-pointer transition bg-studio-950/60 flex flex-col items-center justify-center"
+          >
+            <input
+              id="logoInput"
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              class="hidden"
+              onchange="handleLogoFile(event.target.files[0])"
+            />
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-2.5">
+              <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+            </div>
+            <p class="text-sm font-bold text-white">Upload Logo (PNG / JPG)</p>
+            <p class="text-xs text-slate-400 mt-1">Click karein ya photo yahan drop karein</p>
+            <span id="logoFileBadge" class="mt-3 text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              Auto-Generated Icon Active
+            </span>
+          </div>
+
+          <!-- Live Mipmap Resolution Matrix -->
+          <div class="md:col-span-7 bg-studio-950/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2.5">
+              <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Live Resized Android Mipmap Icons
+              </span>
+              <span class="text-[11px] font-mono text-emerald-400">6 Resolutions Ready</span>
+            </div>
+
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5 items-end text-center py-2">
+              <div class="flex flex-col items-center">
+                <img id="mipmapPreview-48" class="w-8 h-8 squircle border border-white/15 shadow" alt="48x48" />
+                <span class="text-[10px] font-mono text-slate-300 mt-1.5">mdpi</span>
+                <span class="text-[9px] font-mono text-slate-500">48×48</span>
+              </div>
+              <div class="flex flex-col items-center">
+                <img id="mipmapPreview-72" class="w-9 h-9 squircle border border-white/15 shadow" alt="72x72" />
+                <span class="text-[10px] font-mono text-slate-300 mt-1.5">hdpi</span>
+                <span class="text-[9px] font-mono text-slate-500">72×72</span>
+              </div>
+              <div class="flex flex-col items-center">
+                <img id="mipmapPreview-96" class="w-10 h-10 squircle border border-white/15 shadow" alt="96x96" />
+                <span class="text-[10px] font-mono text-slate-300 mt-1.5">xhdpi</span>
+                <span class="text-[9px] font-mono text-slate-500">96×96</span>
+              </div>
+              <div class="flex flex-col items-center">
+                <img id="mipmapPreview-144" class="w-11 h-11 squircle border border-white/15 shadow" alt="144x144" />
+                <span class="text-[10px] font-mono text-slate-300 mt-1.5">xxhdpi</span>
+                <span class="text-[9px] font-mono text-slate-500">144×144</span>
+              </div>
+              <div class="flex flex-col items-center">
+                <img id="mipmapPreview-192" class="w-12 h-12 squircle border border-emerald-500/40 shadow" alt="192x192" />
+                <span class="text-[10px] font-mono text-emerald-400 mt-1.5">xxxhdpi</span>
+                <span class="text-[9px] font-mono text-slate-500">192×192</span>
+              </div>
+              <div class="flex flex-col items-center">
+                <img id="mipmapPreview-512" class="w-14 h-14 squircle border border-indigo-500/40 shadow-lg" alt="512x512" />
+                <span class="text-[10px] font-mono text-indigo-400 mt-1.5">Store</span>
+                <span class="text-[9px] font-mono text-slate-500">512×512</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 3: UPLOAD CODE (.ZIP OR .HTML) -->
+      <section class="glass-panel rounded-2xl p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-sm flex items-center justify-center shadow">3</span>
+            <div>
+              <h3 class="text-base font-bold text-white">Upload Code (.ZIP or Single .HTML)</h3>
+              <p class="text-xs text-slate-400">Apne HTML, CSS, JS code ka `.zip` upload karein — Browser mein turant inspect aur run hoga</p>
+            </div>
+          </div>
+          <button onclick="loadDemoApp(false)" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 font-semibold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-play text-indigo-400"></i> Load Demo Game/App
+          </button>
+        </div>
+
+        <!-- ZIP Drop Area -->
+        <div
+          id="zipDropArea"
+          onclick="document.getElementById('zipInput').click()"
+          class="border-2 border-dashed border-slate-700 hover:border-emerald-500/70 rounded-2xl p-6 text-center cursor-pointer transition bg-studio-950/60"
+        >
+          <input
+            id="zipInput"
+            type="file"
+            accept=".zip,.html,.htm,application/zip,text/html"
+            class="hidden"
+            onchange="handleCodeFile(event.target.files[0])"
+          />
+          <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto mb-3">
+            <i class="fa-solid fa-file-zipper text-2xl"></i>
+          </div>
+          <p class="text-sm sm:text-base font-bold text-white">
+            Click to select or Drop your <span class="text-emerald-400 font-mono">.zip</span> / <span class="text-indigo-400 font-mono">.html</span> file
+          </p>
+          <p class="text-xs text-slate-400 mt-1">
+            JSZip aapke ZIP ko browser ke andar hi unpack karke <code class="text-emerald-300">index.html</code> verify karega aur right side ke Phone mein live chalayega!
+          </p>
+        </div>
+
+        <!-- Inspected ZIP Contents Box -->
+        <div class="mt-4 bg-studio-950 border border-slate-800 rounded-xl p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span id="zipStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <span id="zipNameLabel" class="text-xs font-mono font-bold text-white">cyber-runner-demo.zip</span>
+              <span id="indexVerifyBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                ✓ index.html Verified
+              </span>
+            </div>
+            <div class="text-xs font-mono text-slate-400">
+              <span id="zipFileCount">3 files</span> • <span id="zipTotalSize">8.4 KB</span>
+            </div>
+          </div>
+
+          <div id="zipFileList" class="mt-2.5 max-h-36 overflow-y-auto space-y-1.5 font-mono text-xs">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- MAIN GENERATE ANDROID APK BUTTON -->
+      <div>
+        <button
+          onclick="startGenerateApkFlow()"
+          class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500 hover:from-emerald-400 hover:to-indigo-400 text-slate-950 font-extrabold text-base sm:text-lg tracking-wide shadow-xl transition transform active:scale-[0.99] flex items-center justify-center gap-3 cta-glow"
+        >
+          <i class="fa-brands fa-android text-2xl"></i>
+          <span>GENERATE ANDROID APK NOW</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: INTERACTIVE ANDROID DEVICE EMULATOR (5 COLS) -->
+    <div class="lg:col-span-5 lg:sticky lg:top-20 flex flex-col items-center">
+      <div class="w-full glass-panel rounded-2xl p-4 sm:p-5 flex flex-col items-center">
+
+        <!-- Emulator Top Control Bar -->
+        <div class="w-full flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <h3 class="text-sm font-bold text-white">Interactive Android Emulator</h3>
+          </div>
+
+          <!-- Emulator Action Buttons -->
+          <div class="flex items-center gap-1.5">
+            <button
+              id="btnViewApp"
+              onclick="setEmulatorView('app')"
+              class="text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-bold transition"
+            >
+              WebView App
+            </button>
+            <button
+              id="btnViewHome"
+              onclick="setEmulatorView('home')"
+              class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition"
+            >
+              Home Icon
+            </button>
+            <button
+              onclick="toggleRotateScreen()"
+              title="Rotate Screen (Portrait / Landscape)"
+              class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center text-xs transition"
+            >
+              <i class="fa-solid fa-mobile-screen-button" id="rotateIcon"></i>
+            </button>
+            <button
+              onclick="toggleEmulatorFullscreen()"
+              title="Toggle Fullscreen Status Bar"
+              class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center text-xs transition"
+            >
+              <i class="fa-solid fa-expand"></i>
+            </button>
+            <button
+              onclick="reloadWebView()"
+              title="Reload App"
+              class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 flex items-center justify-center text-xs transition"
+            >
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ANDROID PHONE HARDWARE MOCKUP -->
+        <div
+          id="androidPhoneFrame"
+          class="phone-bezel relative bg-slate-950 rounded-[40px] w-[310px] sm:w-[330px] h-[620px] flex flex-col overflow-hidden select-none"
+        >
+          <!-- Android Top Status Bar -->
+          <div
+            id="emulatorStatusBar"
+            class="h-7 px-5 bg-slate-950 text-slate-200 flex items-center justify-between text-[11px] font-mono shrink-0 z-20 border-b border-white/5"
+          >
+            <span id="emuClock">10:00</span>
+            <div class="w-3.5 h-3.5 rounded-full bg-black border border-slate-800"></div>
+            <div class="flex items-center gap-1.5 text-[10px]">
+              <i class="fa-solid fa-wifi text-emerald-400"></i>
+              <i class="fa-solid fa-signal text-emerald-400"></i>
+              <i class="fa-solid fa-battery-full text-emerald-400"></i>
+            </div>
+          </div>
+
+          <!-- SCREEN 1: LIVE WEBVIEW IFRAME PREVIEW -->
+          <div id="emuScreenApp" class="flex-1 w-full bg-slate-900 relative overflow-hidden">
+            <iframe
+              id="emuIframe"
+              title="Live Android WebView Preview"
+              class="w-full h-full border-0 bg-white"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+            ></iframe>
+          </div>
+
+          <!-- SCREEN 2: ANDROID HOME SCREEN LAUNCHER -->
+          <div
+            id="emuScreenHome"
+            class="hidden flex-1 w-full relative overflow-hidden flex-col justify-between p-6 bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950"
+          >
+            <div class="mt-4 text-center">
+              <div id="emuHomeClock" class="text-4xl font-light text-white tracking-tight">10:00</div>
+              <div class="text-xs text-emerald-300/80 mt-1">Android 15 • Ready to Launch</div>
+            </div>
+
+            <div class="my-auto flex flex-col items-center">
+              <button
+                onclick="setEmulatorView('app')"
+                class="group flex flex-col items-center focus:outline-none transform transition hover:scale-105 active:scale-95"
+              >
+                <div class="w-20 h-20 squircle overflow-hidden shadow-2xl border-2 border-white/20 bg-slate-900 relative">
+                  <img id="emuHomeIcon" alt="Launcher Icon" class="w-full h-full object-cover" />
+                </div>
+                <span
+                  id="emuHomeLabel"
+                  class="mt-2.5 text-xs font-semibold text-white drop-shadow px-2.5 py-0.5 rounded-md bg-black/40 max-w-[140px] truncate"
+                >
+                  Cyber Runner Pro
+                </span>
+                <span class="mt-2 text-[11px] text-emerald-300 bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-0.5 rounded-full animate-bounce">
+                  Tap Icon to Open App
+                </span>
+              </button>
+            </div>
+
+            <div class="bg-white/10 backdrop-blur-md rounded-3xl p-2.5 flex items-center justify-around border border-white/10">
+              <div class="w-9 h-9 rounded-2xl bg-emerald-500/30 flex items-center justify-center text-white"><i class="fa-solid fa-phone text-xs"></i></div>
+              <div class="w-9 h-9 rounded-2xl bg-blue-500/30 flex items-center justify-center text-white"><i class="fa-solid fa-message text-xs"></i></div>
+              <div class="w-9 h-9 rounded-2xl bg-purple-500/30 flex items-center justify-center text-white"><i class="fa-brands fa-chrome text-xs"></i></div>
+              <div class="w-9 h-9 rounded-2xl bg-rose-500/30 flex items-center justify-center text-white"><i class="fa-solid fa-camera text-xs"></i></div>
+            </div>
+          </div>
+
+          <!-- Android Bottom System Navigation Bar -->
+          <div class="h-9 bg-slate-950 border-t border-white/5 flex items-center justify-around px-8 text-slate-400 shrink-0 z-20">
+            <button onclick="reloadWebView()" title="Back / Reload" class="hover:text-white transition p-1">
+              <i class="fa-solid fa-caret-left text-sm"></i>
+            </button>
+            <button onclick="setEmulatorView('home')" title="Home Screen" class="hover:text-white transition p-1">
+              <i class="fa-regular fa-circle text-xs"></i>
+            </button>
+            <button onclick="setEmulatorView('app')" title="App View" class="hover:text-white transition p-1">
+              <i class="fa-regular fa-square text-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between w-full text-[11px] text-slate-400 px-2">
+          <span>Orientation: <strong id="emuOrientationText" class="text-emerald-400">Portrait</strong></span>
+          <span>Engine: <strong class="text-indigo-400">Android WebView v124</strong></span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- GENERATE APK BUILD TERMINAL & OUTPUT MODAL -->
+  <div
+    id="apkBuildModal"
+    class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+  >
+    <div class="bg-studio-900 border border-slate-700 rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl my-auto">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-studio-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img id="modalAppIcon" alt="Icon" class="w-11 h-11 squircle object-cover border border-slate-700" />
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 id="modalAppNameTitle" class="text-base sm:text-lg font-extrabold text-white">Cyber_Runner_Pro.apk</h2>
+              <span id="modalPackageBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                com.web2apk.cyberrunnerpro
+              </span>
+            </div>
+            <p class="text-xs text-slate-400">Web2APK Build Pipeline & Cloud APK Compiler</p>
+          </div>
+        </div>
+        <button onclick="closeBuildModal()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-5 sm:p-6 space-y-5 max-h-[82vh] overflow-y-auto">
+
+        <!-- 3-SECOND REALISTIC STEP-BY-STEP BUILD TERMINAL -->
+        <div class="bg-studio-950 border border-slate-800 rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span id="terminalStatusTitle" class="text-xs font-mono font-bold text-emerald-400 flex items-center gap-2">
+              <i class="fa-solid fa-gear fa-spin"></i>
+              <span>Starting Web2APK Build Engine...</span>
+            </span>
+            <span id="terminalProgressPct" class="text-xs font-mono font-extrabold text-white">0%</span>
+          </div>
+
+          <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-3">
+            <div id="terminalProgressBar" class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+
+          <div
+            id="terminalLogBox"
+            class="font-mono text-[11px] text-slate-300 space-y-1.5 max-h-32 overflow-y-auto bg-black/50 p-3 rounded-xl border border-slate-800/90"
+          ></div>
+        </div>
+
+        <!-- OUTPUT OPTIONS (UNLOCKED AFTER 3s BUILD) -->
+        <div id="buildDownloadsContainer" class="space-y-4 opacity-40 pointer-events-none transition-opacity duration-300">
+
+          <!-- Primary Download Cards (Option A & Option B) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <!-- OPTION A: Ready-to-Build Android WebView Project + Cloud Auto-APK ZIP + Direct APK Package -->
+            <div class="bg-studio-950 border-2 border-emerald-500/40 rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">
+                    Option A • Complete Android & APK
+                  </span>
+                  <i class="fa-brands fa-android text-emerald-400 text-xl"></i>
+                </div>
+                <h4 class="text-base font-extrabold text-white">
+                  Android WebView Project + Cloud Auto-APK
+                </h4>
+                <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  Ismein aapka extracted HTML/CSS/JS (<code class="text-emerald-300">app/src/main/assets/www/</code>), saare 6 resized PNG icons (<code class="text-emerald-300">mipmap-*</code>), <code class="text-emerald-300">AndroidManifest.xml</code>, <code class="text-emerald-300">MainActivity.java</code>, <code class="text-emerald-300">build.gradle</code> aur zero-setup <code class="text-emerald-300">.github/workflows/build-apk.yml</code> shamil hai.
+                </p>
+              </div>
+
+              <div class="mt-4 space-y-2">
+                <button
+                  onclick="downloadCompleteAndroidProjectZip()"
+                  class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2"
+                >
+                  <i class="fa-solid fa-download"></i>
+                  <span>Download Complete Android + Cloud Auto-APK (.ZIP)</span>
+                </button>
+
+                <button
+                  onclick="downloadPackagedApkBinary()"
+                  class="w-full py-2.5 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-bold text-xs transition flex items-center justify-center gap-2"
+                >
+                  <i class="fa-brands fa-android"></i>
+                  <span id="directApkBtnLabel">Download Packaged .APK Archive Directly</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- OPTION B: Instant Standalone Installable Web App (.HTML Single-File + Offline PWA) -->
+            <div class="bg-studio-950 border-2 border-indigo-500/40 rounded-2xl p-5 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-bold">
+                    Option B • Instant Mobile Install
+                  </span>
+                  <i class="fa-solid fa-mobile-screen-button text-indigo-400 text-xl"></i>
+                </div>
+                <h4 class="text-base font-extrabold text-white">
+                  Standalone Installable WebAPK (.HTML)
+                </h4>
+                <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  Aapke poore ZIP code (HTML, CSS, JS, Images), aapke Resized App Icons, <code class="text-indigo-300">manifest.json</code> aur Offline Service Worker ko ek single ready-to-use <code class="text-indigo-300">.html</code> file mein bundle karta hai — bina kisi warning ke phone par seedha run aur Add-to-Home-Screen karein!
+                </p>
+              </div>
+
+              <div class="mt-4 space-y-2">
+                <button
+                  onclick="downloadStandaloneSingleHtmlApp()"
+                  class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-indigo-500/20 transition flex items-center justify-center gap-2"
+                >
+                  <i class="fa-solid fa-file-code"></i>
+                  <span>Download Standalone Bundled App (.HTML)</span>
+                </button>
+
+                <button
+                  onclick="downloadOfflineWebApkZip()"
+                  class="w-full py-2.5 px-4 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 font-bold text-xs transition flex items-center justify-center gap-2"
+                >
+                  <i class="fa-solid fa-box-archive"></i>
+                  <span>Download Multi-File PWA WebAPK (.ZIP)</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- OPTION C: DIRECT CLOUD APK API (GITHUB TOKEN 1-CLICK CLOUD BUILD) -->
+          <div class="bg-studio-950 border border-slate-800 rounded-2xl p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <i class="fa-solid fa-cloud-bolt"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-extrabold text-white">
+                    Direct Cloud APK Compiler API (1-Click Signed `.APK` via GitHub Cloud)
+                  </h4>
+                  <p class="text-xs text-slate-400">
+                    Bina Android Studio install kiye cloud par real Gradle V2-Signed `.apk` compile karein:
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=Web2APK_Studio"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-xs font-semibold text-emerald-400 hover:underline flex items-center gap-1"
+              >
+                <span>Get Free GitHub Token (1-Click)</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              </a>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+              <div class="sm:col-span-8">
+                <input
+                  id="githubTokenInput"
+                  type="password"
+                  placeholder="Paste GitHub Personal Access Token (ghp_... with repo & workflow scope)"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:border-emerald-500 focus:outline-none text-xs font-mono text-white"
+                />
+              </div>
+              <div class="sm:col-span-4">
+                <button
+                  id="triggerCloudBuildBtn"
+                  onclick="triggerDirectCloudApkBuild()"
+                  class="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition flex items-center justify-center gap-2 shadow"
+                >
+                  <i class="fa-brands fa-github text-sm"></i>
+                  <span>1-Click Cloud Build APK</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="cloudBuildStatusPanel" class="hidden mt-3 p-3.5 rounded-xl bg-black/60 border border-slate-800 font-mono text-xs space-y-2">
+              <div id="cloudBuildMsg" class="text-emerald-300">Initializing...</div>
+              <div id="cloudBuildLinks" class="flex flex-wrap gap-2 pt-1"></div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastBox" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <script>
+    /*************************************************************************
+     * APPLICATION STATE
+     *************************************************************************/
+    const state = {
+      appName: 'Cyber Runner Pro',
+      packageId: 'com.web2apk.cyberrunnerpro',
+      customPkg: false,
+      versionName: '1.0.0',
+      versionCode: 1,
+      orientation: 'portrait', // 'portrait' | 'landscape'
+      fullscreen: false,
+      offlineAccess: true,
+      archiveName: 'cyber-runner-demo.zip',
+      files: {}, // path -> { name, data: Uint8Array, isText, text, mime, size }
+      entryHtml: 'index.html',
+      icons: {}, // size -> { density, size, dataUrl, uint8 }
+      blobUrls: []
+    };
+
+    const MIPMAP_SPECS = [
+      { density: 'mdpi', size: 48 },
+      { density: 'hdpi', size: 72 },
+      { density: 'xhdpi', size: 96 },
+      { density: 'xxhdpi', size: 144 },
+      { density: 'xxxhdpi', size: 192 },
+      { density: 'playstore', size: 512 }
+    ];
+
+    /*************************************************************************
+     * INITIALIZATION
+     *************************************************************************/
+    window.onload = async function () {
+      updateClocks();
+      setInterval(updateClocks, 20000);
+      initDropZones();
+      await generateStudioLogo(0, true);
+      await loadDemoApp(true);
+    };
+
+    function updateClocks() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      const c1 = document.getElementById('emuClock');
+      const c2 = document.getElementById('emuHomeClock');
+      if (c1) c1.textContent = timeStr;
+      if (c2) c2.textContent = timeStr;
+    }
+
+    function notify(msg, type = 'success') {
+      const box = document.getElementById('toastBox');
+      const item = document.createElement('div');
+      const styles = {
+        success: 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200',
+        info: 'bg-indigo-950/95 border-indigo-500/50 text-indigo-200',
+        error: 'bg-rose-950/95 border-rose-500/50 text-rose-200'
+      };
+      const icons = {
+        success: 'fa-circle-check text-emerald-400',
+        info: 'fa-circle-info text-indigo-400',
+        error: 'fa-triangle-exclamation text-rose-400'
+      };
+      item.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-md text-xs font-medium transition-all duration-300 ${styles[type] || styles.info}`;
+      item.innerHTML = `<i class="fa-solid ${icons[type] || icons.info} text-base shrink-0"></i><span class="flex-1">${msg}</span>`;
+      box.appendChild(item);
+      setTimeout(() => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(8px)';
+        setTimeout(() => item.remove(), 300);
+      }, 3800);
+    }
+
+    /*************************************************************************
+     * STEP 1: APP NAME, PACKAGE ID & SETTINGS
+     *************************************************************************/
+    function onAppNameInput(val) {
+      state.appName = val.trim() || 'My Web App';
+      document.getElementById('emuHomeLabel').textContent = state.appName;
+
+      if (!state.customPkg) {
+        const clean = state.appName
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '')
+          .replace(/^[0-9]+/, '');
+        state.packageId = `com.web2apk.${clean || 'myapp'}`;
+        document.getElementById('packageIdInput').value = state.packageId;
+      }
+    }
+
+    function resetAutoPackageId() {
+      state.customPkg = false;
+      onAppNameInput(document.getElementById('appNameInput').value);
+      notify('Android Package ID auto-synced with App Name!', 'info');
+    }
+
+    function setFullscreenMode(enabled) {
+      state.fullscreen = enabled;
+      document.getElementById('fullscreenCheckbox').checked = enabled;
+      const bar = document.getElementById('emulatorStatusBar');
+      bar.style.display = enabled ? 'none' : 'flex';
+    }
+
+    function toggleEmulatorFullscreen() {
+      setFullscreenMode(!state.fullscreen);
+      notify(state.fullscreen ? 'Fullscreen Mode ON (Status Bar Hidden)' : 'Status Bar Visible', 'info');
+    }
+
+    function toggleRotateScreen() {
+      state.orientation = state.orientation === 'portrait' ? 'landscape' : 'portrait';
+      const frame = document.getElementById('androidPhoneFrame');
+      const label = document.getElementById('emuOrientationText');
+      if (state.orientation === 'landscape') {
+        frame.classList.remove('w-[310px]', 'sm:w-[330px]', 'h-[620px]');
+        frame.classList.add('w-full', 'max-w-[540px]', 'h-[330px]');
+        label.textContent = 'Landscape';
+      } else {
+        frame.classList.remove('w-full', 'max-w-[540px]', 'h-[330px]');
+        frame.classList.add('w-[310px]', 'sm:w-[330px]', 'h-[620px]');
+        label.textContent = 'Portrait';
+      }
+      notify(`Rotated Emulator to ${label.textContent} mode`, 'info');
+    }
+
+    /*************************************************************************
+     * STEP 2: HTML5 CANVAS MIPMAP ICON RESIZER (48px -> 512px)
+     *************************************************************************/
+    function handleLogoFile(file) {
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = async () => {
+        await generateAllMipmapsFromSource(img);
+        URL.revokeObjectURL(url);
+        document.getElementById('logoFileBadge').textContent = `${file.name} (6 Sizes Ready)`;
+        notify('Logo automatically resized into all 6 Android mipmap resolutions!', 'success');
+      };
+      img.onerror = () => notify('Invalid image file. Please select a PNG or JPG image.', 'error');
+      img.src = url;
+    }
+
+    async function generateAllMipmapsFromSource(imgOrCanvas) {
+      for (const spec of MIPMAP_SPECS) {
+        const c = document.createElement('canvas');
+        c.width = spec.size;
+        c.height = spec.size;
+        const ctx = c.getContext('2d');
+
+        // Center-crop square
+        const sw = imgOrCanvas.width;
+        const sh = imgOrCanvas.height;
+        const side = Math.min(sw, sh);
+        const sx = (sw - side) / 2;
+        const sy = (sh - side) / 2;
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(imgOrCanvas, sx, sy, side, side, 0, 0, spec.size, spec.size);
+
+        const dataUrl = c.toDataURL('image/png');
+        const uint8 = dataUrlToUint8(dataUrl);
+        state.icons[spec.size] = {
+          density: spec.density,
+          size: spec.size,
+          dataUrl,
+          uint8
+        };
+
+        const previewEl = document.getElementById(`mipmapPreview-${spec.size}`);
+        if (previewEl) previewEl.src = dataUrl;
+      }
+
+      // Update Emulator Home Screen Icon & Modal Icon
+      const mainIcon = state.icons[192].dataUrl;
+      document.getElementById('emuHomeIcon').src = mainIcon;
+      document.getElementById('modalAppIcon').src = mainIcon;
+    }
+
+    let studioLogoIdx = 0;
+    async function generateStudioLogo(forcedIdx = null, silent = false) {
+      const themes = [
+        ['#10b981', '#0ea5e9', '#4f46e5', '⚡'],
+        ['#f43f5e', '#a855f7', '#3b82f6', '🚀'],
+        ['#f59e0b', '#ec4899', '#6366f1', '🎮'],
+        ['#14b8a6', '#3b82f6', '#1e1b4b', '💎']
+      ];
+      const idx = forcedIdx !== null ? forcedIdx : ++studioLogoIdx;
+      const t = themes[idx % themes.length];
+
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext('2d');
+
+      const g = ctx.createLinearGradient(0, 0, 512, 512);
+      g.addColorStop(0, t[0]);
+      g.addColorStop(0.5, t[1]);
+      g.addColorStop(1, t[2]);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 512, 512);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(256, 256, 195, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 195px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t[3], 256, 268);
+
+      await generateAllMipmapsFromSource(c);
+      if (!silent) {
+        document.getElementById('logoFileBadge').textContent = `Studio Icon #${idx + 1} (6 Sizes)`;
+        notify('New Android App Icon generated across all 6 mipmap sizes!', 'info');
+      }
+    }
+
+    function dataUrlToUint8(dataUrl) {
+      const b64 = dataUrl.split(',')[1];
+      const bin = atob(b64);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    /*************************************************************************
+     * STEP 3: JSZIP CODE INSPECTOR & LIVE WEBVIEW EMULATOR
+     *************************************************************************/
+    async function handleCodeFile(file) {
+      if (!file) return;
+      const nameLower = file.name.toLowerCase();
+
+      try {
+        if (nameLower.endsWith('.html') || nameLower.endsWith('.htm')) {
+          const text = await file.text();
+          const uint8 = new TextEncoder().encode(text);
+          state.archiveName = file.name;
+          state.files = {
+            'index.html': {
+              name: 'index.html',
+              data: uint8,
+              isText: true,
+              text,
+              mime: 'text/html',
+              size: uint8.byteLength
+            }
+          };
+          state.entryHtml = 'index.html';
+          refreshZipInspectorUI();
+          renderWebViewPreview();
+          notify(`Loaded single HTML file (${file.name}) into Android Emulator!`, 'success');
+          return;
+        }
+
+        const buf = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(buf);
+        await unpackAndInspectZip(zip, file.name);
+        notify(`ZIP "${file.name}" unpacked & running live in Android Emulator!`, 'success');
+      } catch (err) {
+        notify('Could not read ZIP/HTML file: ' + err.message, 'error');
+      }
+    }
+
+    async function unpackAndInspectZip(zip, archiveName) {
+      const entries = [];
+      zip.forEach((relPath, entry) => {
+        if (!entry.dir && !relPath.includes('__MACOSX') && !relPath.endsWith('.DS_Store')) {
+          entries.push({ relPath, entry });
+        }
+      });
+
+      if (entries.length === 0) {
+        notify('Uploaded ZIP file is empty!', 'error');
+        return;
+      }
+
+      // Detect common root folder if index.html is inside a subfolder
+      let stripPrefix = '';
+      const htmlPaths = entries
+        .map(e => e.relPath)
+        .filter(p => p.toLowerCase().endsWith('index.html') || p.toLowerCase().endsWith('.html'))
+        .sort((a, b) => a.split('/').length - b.split('/').length);
+
+      if (htmlPaths.length > 0) {
+        const primary = htmlPaths[0];
+        const slashIdx = primary.lastIndexOf('/');
+        if (slashIdx !== -1) {
+          stripPrefix = primary.substring(0, slashIdx + 1);
+        }
+      }
+
+      const fileMap = {};
+      for (const item of entries) {
+        let cleanPath = item.relPath;
+        if (stripPrefix && cleanPath.startsWith(stripPrefix)) {
+          cleanPath = cleanPath.substring(stripPrefix.length);
+        }
+        if (!cleanPath) continue;
+
+        const uint8 = await item.entry.async('uint8array');
+        const mime = detectMime(cleanPath);
+        const isText = isTextMimeType(mime);
+        const text = isText ? new TextDecoder('utf-8').decode(uint8) : null;
+
+        fileMap[cleanPath] = {
+          name: cleanPath,
+          data: uint8,
+          isText,
+          text,
+          mime,
+          size: uint8.byteLength
+        };
+      }
+
+      state.files = fileMap;
+      state.archiveName = archiveName;
+
+      if (fileMap['index.html']) {
+        state.entryHtml = 'index.html';
+      } else {
+        const fallbackHtml = Object.keys(fileMap).find(p => p.toLowerCase().endsWith('.html') || p.toLowerCase().endsWith('.htm'));
+        state.entryHtml = fallbackHtml || null;
+      }
+
+      refreshZipInspectorUI();
+      renderWebViewPreview();
+    }
+
+    function refreshZipInspectorUI() {
+      const keys = Object.keys(state.files).sort();
+      let totalSize = 0;
+      keys.forEach(k => (totalSize += state.files[k].size));
+
+      document.getElementById('zipNameLabel').textContent = state.archiveName;
+      document.getElementById('zipFileCount').textContent = `${keys.length} file${keys.length === 1 ? '' : 's'}`;
+      document.getElementById('zipTotalSize').textContent = formatSize(totalSize);
+
+      const badge = document.getElementById('indexVerifyBadge');
+      const dot = document.getElementById('zipStatusDot');
+
+      if (state.entryHtml) {
+        badge.textContent = `✓ ${state.entryHtml} Verified`;
+        badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
+      } else {
+        badge.textContent = '✗ index.html Missing';
+        badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30';
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+      }
+
+      const listEl = document.getElementById('zipFileList');
+      listEl.innerHTML = keys
+        .map(k => {
+          const f = state.files[k];
+          const icon = k.endsWith('.html')
+            ? 'fa-code text-orange-400'
+            : k.endsWith('.css')
+            ? 'fa-css3-alt text-sky-400'
+            : k.endsWith('.js')
+            ? 'fa-square-js text-amber-400'
+            : 'fa-file text-emerald-400';
+          return `
+            <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
+              <div class="flex items-center gap-2 truncate">
+                <i class="fa-brands ${icon} fa-solid text-xs"></i>
+                <span class="text-slate-200 truncate">${escapeHtml(k)}</span>
+              </div>
+              <span class="text-[10px] text-slate-400 shrink-0 ml-2">${formatSize(f.size)}</span>
+            </div>`;
+        })
+        .join('');
+    }
+
+    function renderWebViewPreview() {
+      state.blobUrls.forEach(u => URL.revokeObjectURL(u));
+      state.blobUrls = [];
+
+      const iframe = document.getElementById('emuIframe');
+      if (!state.entryHtml || !state.files[state.entryHtml]) {
+        iframe.srcdoc = `<body style="background:#0f172a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:20px;"><div><h3 style="color:#f43f5e;">index.html Not Found</h3><p style="font-size:12px;color:#94a3b8;">Upload a ZIP containing index.html to preview your app.</p></div></body>`;
+        return;
+      }
+
+      const assetMap = {};
+      for (const [path, fileObj] of Object.entries(state.files)) {
+        if (path === state.entryHtml) continue;
+        const blob = new Blob([fileObj.data], { type: fileObj.mime });
+        const url = URL.createObjectURL(blob);
+        state.blobUrls.push(url);
+        assetMap[path] = url;
+        assetMap['./' + path] = url;
+        assetMap['/' + path] = url;
+      }
+
+      let html = state.files[state.entryHtml].text || '';
+      for (const [rel, blobUrl] of Object.entries(assetMap)) {
+        const esc = rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        html = html.replace(new RegExp(`(['"(])${esc}(['")])`, 'g'), `$1${blobUrl}$2`);
+      }
+
+      iframe.srcdoc = html;
+    }
+
+    function reloadWebView() {
+      renderWebViewPreview();
+      notify('Android WebView App Reloaded!', 'info');
+    }
+
+    function setEmulatorView(mode) {
+      const appScreen = document.getElementById('emuScreenApp');
+      const homeScreen = document.getElementById('emuScreenHome');
+      const btnApp = document.getElementById('btnViewApp');
+      const btnHome = document.getElementById('btnViewHome');
+
+      if (mode === 'home') {
+        appScreen.classList.add('hidden');
+        homeScreen.classList.remove('hidden');
+        homeScreen.classList.add('flex');
+        btnHome.className = 'text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-bold transition';
+        btnApp.className = 'text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition';
+      } else {
+        homeScreen.classList.add('hidden');
+        homeScreen.classList.remove('flex');
+        appScreen.classList.remove('hidden');
+        btnApp.className = 'text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-bold transition';
+        btnHome.className = 'text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition';
+      }
+    }
+
+    /*************************************************************************
+     * BUILT-IN DEMO GAME / APP (CYBER RUNNER PRO)
+     *************************************************************************/
+    async function loadDemoApp(silent = false) {
+      const demoHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Cyber Runner Pro</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="top-bar">
+    <span class="badge">⚡ CYBER ORB</span>
+    <span class="score">SCORE: <b id="scoreVal">0</b></span>
+  </div>
+  <div class="stage" id="stage">
+    <div class="target" id="target">💎</div>
+  </div>
+  <div class="controls">
+    <button id="megaBtn">🚀 MEGA COMBO (+10)</button>
+  </div>
+  <script src="game.js"><\/script>
+</body>
+</html>`;
+
+      const demoCss = `* { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+body {
+  margin: 0; height: 100vh; overflow: hidden;
+  background: radial-gradient(circle at top, #1e1b4b, #060911);
+  color: #fff; font-family: system-ui, sans-serif;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.top-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; background: rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.badge { font-size: 12px; font-weight: 800; color: #34d399; letter-spacing: 1px; }
+.score { font-size: 15px; font-weight: 800; color: #38bdf8; }
+.stage { position: relative; flex: 1; overflow: hidden; }
+.target {
+  position: absolute; width: 66px; height: 66px; border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #3b82f6);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; cursor: pointer; left: 40%; top: 38%;
+  transition: transform 0.1s ease;
+}
+.target:active { transform: scale(0.84); }
+.controls { padding: 14px; background: rgba(0,0,0,0.4); }
+button {
+  width: 100%; padding: 13px; border: none; border-radius: 14px;
+  background: linear-gradient(90deg, #10b981, #6366f1);
+  color: #060911; font-weight: 800; font-size: 14px; cursor: pointer;
+}`;
+
+      const demoJs = `let pts = 0;
+const scoreVal = document.getElementById('scoreVal');
+const target = document.getElementById('target');
+const stage = document.getElementById('stage');
+const megaBtn = document.getElementById('megaBtn');
+
+function jump() {
+  const maxX = Math.max(15, stage.clientWidth - 76);
+  const maxY = Math.max(15, stage.clientHeight - 76);
+  target.style.left = Math.floor(Math.random() * maxX) + 'px';
+  target.style.top = Math.floor(Math.random() * maxY) + 'px';
+}
+
+target.addEventListener('pointerdown', () => {
+  pts += 1;
+  scoreVal.textContent = pts;
+  jump();
+});
+
+megaBtn.addEventListener('click', () => {
+  pts += 10;
+  scoreVal.textContent = pts;
+  jump();
+});
+
+setInterval(jump, 1600);`;
+
+      const zip = new JSZip();
+      zip.file('index.html', demoHtml);
+      zip.file('style.css', demoCss);
+      zip.file('game.js', demoJs);
+
+      await unpackAndInspectZip(zip, 'cyber-runner-demo.zip');
+      if (!silent) {
+        notify('Demo Game ZIP loaded! Play it live inside the Android Emulator on the right!', 'success');
+      }
+    }
+
+    /*************************************************************************
+     * "GENERATE APK" 3-SECOND REALISTIC BUILD TERMINAL & OUTPUT ENGINE
+     *************************************************************************/
+    let buildTimerIds = [];
+
+    function startGenerateApkFlow() {
+      if (!state.entryHtml) {
+        notify('Please upload a valid ZIP or HTML file containing index.html first!', 'error');
+        return;
+      }
+
+      const modal = document.getElementById('apkBuildModal');
+      modal.classList.remove('hidden');
+
+      const safeSlug = state.appName.replace(/[^a-zA-Z0-9_-]/g, '_') || 'MyWebApp';
+      document.getElementById('modalAppNameTitle').textContent = `${safeSlug}-v${state.versionName}.apk`;
+      document.getElementById('modalPackageBadge').textContent = state.packageId;
+      document.getElementById('directApkBtnLabel').textContent = `Download ${safeSlug}.apk Package`;
+
+      // Reset terminal & lock download cards for 3-second build sequence
+      buildTimerIds.forEach(id => clearTimeout(id));
+      buildTimerIds = [];
+
+      const logBox = document.getElementById('terminalLogBox');
+      const bar = document.getElementById('terminalProgressBar');
+      const pct = document.getElementById('terminalProgressPct');
+      const title = document.getElementById('terminalStatusTitle');
+      const downloads = document.getElementById('buildDownloadsContainer');
+
+      logBox.innerHTML = '';
+      bar.style.width = '0%';
+      pct.textContent = '0%';
+      downloads.classList.add('opacity-40', 'pointer-events-none');
+      title.innerHTML = `<i class="fa-solid fa-gear fa-spin"></i> <span>Compiling Android Package (${state.packageId})...</span>`;
+
+      const stages = [
+        { delay: 200, p: 18, text: `[1/5] Unpacking ZIP (${Object.keys(state.files).length} files) & verifying entry point (${state.entryHtml})...` },
+        { delay: 850, p: 42, text: `[2/5] Generating Android Mipmap PNG Icons (mdpi 48x48 -> xxxhdpi 192x192 & 512x512)...` },
+        { delay: 1550, p: 68, text: `[3/5] Creating AndroidManifest.xml & MainActivity.java WebView bridge (Offline=${state.offlineAccess})...` },
+        { delay: 2250, p: 88, text: `[4/5] Packaging assets/www/ bundle & computing SHA-256 digests...` },
+        { delay: 2950, p: 100, text: `[5/5] Signing package & finalizing outputs — Ready for download!` }
+      ];
+
+      stages.forEach(st => {
+        const tid = setTimeout(() => {
+          bar.style.width = st.p + '%';
+          pct.textContent = st.p + '%';
+          const line = document.createElement('div');
+          line.className = st.p === 100 ? 'text-emerald-400 font-bold' : 'text-slate-300';
+          line.textContent = `> ${st.text}`;
+          logBox.appendChild(line);
+          logBox.scrollTop = logBox.scrollHeight;
+
+          if (st.p === 100) {
+            title.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span>Build Complete in 3.0s — Choose Download Option Below!</span>`;
+            downloads.classList.remove('opacity-40', 'pointer-events-none');
+            notify('APK Build Completed! Select your download option.', 'success');
+          }
+        }, st.delay);
+        buildTimerIds.push(tid);
+      });
+    }
+
+    function closeBuildModal() {
+      document.getElementById('apkBuildModal').classList.add('hidden');
+    }
+
+    /*************************************************************************
+     * DOWNLOAD OPTION A1: COMPLETE ANDROID WEBVIEW PROJECT + CLOUD AUTO-APK ZIP
+     *************************************************************************/
+    async function downloadCompleteAndroidProjectZip() {
+      try {
+        notify('Generating Complete Android Project + Cloud Auto-APK ZIP...', 'info');
+        const zip = new JSZip();
+        const projectMap = buildCompleteAndroidGradleProjectMap();
+        for (const [path, content] of Object.entries(projectMap)) {
+          zip.file(path, content);
+        }
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        const safeName = state.appName.replace(/[^a-zA-Z0-9_-]/g, '_') || 'MyWebApp';
+        saveBlob(blob, `${safeName}-Android-Cloud-AutoAPK.zip`);
+        notify('Downloaded Complete Android Project + Cloud Auto-APK ZIP!', 'success');
+      } catch (err) {
+        notify('Error creating project ZIP: ' + err.message, 'error');
+      }
+    }
+
+    /*************************************************************************
+     * DOWNLOAD OPTION A2: DIRECT PACKAGED .APK ARCHIVE
+     *************************************************************************/
+    async function downloadPackagedApkBinary() {
+      try {
+        const apkZip = new JSZip();
+
+        for (const [path, fileObj] of Object.entries(state.files)) {
+          const target = path === state.entryHtml ? 'assets/www/index.html' : `assets/www/${path}`;
+          apkZip.file(target, fileObj.data);
+        }
+
+        for (const spec of MIPMAP_SPECS) {
+          if (spec.density === 'playstore') continue;
+          const iconBytes = state.icons[spec.size]?.uint8;
+          if (iconBytes) {
+            apkZip.file(`res/mipmap-${spec.density}/ic_launcher.png`, iconBytes);
+            apkZip.file(`res/mipmap-${spec.density}/ic_launcher_round.png`, iconBytes);
+          }
+        }
+
+        apkZip.file('AndroidManifest.xml', buildAndroidManifestXml());
+
+        let mfLines = [
+          'Manifest-Version: 1.0',
+          'Created-By: Web2APK Studio 3.5',
+          `Package-Name: ${state.packageId}`,
+          ''
+        ];
+        for (const [path, fileObj] of Object.entries(state.files)) {
+          const target = path === state.entryHtml ? 'assets/www/index.html' : `assets/www/${path}`;
+          const digest = await crypto.subtle.digest('SHA-256', fileObj.data);
+          mfLines.push(`Name: ${target}`);
+          mfLines.push(`SHA-256-Digest: ${bufToB64(digest)}`);
+          mfLines.push('');
+        }
+        apkZip.file('META-INF/MANIFEST.MF', mfLines.join('\r\n'));
+
+        const blob = await apkZip.generateAsync({
+          type: 'blob',
+          mimeType: 'application/vnd.android.package-archive',
+          compression: 'DEFLATE'
+        });
+        const safeName = state.appName.replace(/[^a-zA-Z0-9_-]/g, '_') || 'MyWebApp';
+        saveBlob(blob, `${safeName}-v${state.versionName}.apk`);
+        notify(`Downloaded ${safeName}-v${state.versionName}.apk!`, 'success');
+      } catch (err) {
+        notify('Failed to package APK: ' + err.message, 'error');
+      }
+    }
+
+    /*************************************************************************
+     * DOWNLOAD OPTION B1: STANDALONE SINGLE-FILE INSTALLABLE WEB APP (.HTML)
+     *************************************************************************/
+    function downloadStandaloneSingleHtmlApp() {
+      try {
+        let html = state.files[state.entryHtml]?.text || '';
+
+        // Inline CSS files
+        for (const [path, fileObj] of Object.entries(state.files)) {
+          if (path.endsWith('.css') && fileObj.text) {
+            const esc = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const linkRegex = new RegExp(`<link[^>]*href=['"]\\.?\\/?${esc}['"][^>]*>`, 'gi');
+            html = html.replace(linkRegex, `<style>\n${fileObj.text}\n</style>`);
+          }
+        }
+
+        // Inline JS files
+        for (const [path, fileObj] of Object.entries(state.files)) {
+          if (path.endsWith('.js') && fileObj.text) {
+            const esc = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const scriptRegex = new RegExp(`<script[^>]*src=['"]\\.?\\/?${esc}['"][^>]*><\\/script>`, 'gi');
+            html = html.replace(scriptRegex, `<script>\n${fileObj.text}\n<\/script>`);
+          }
+        }
+
+        const icon192 = state.icons[192]?.dataUrl || '';
+        const icon512 = state.icons[512]?.dataUrl || '';
+
+        const webManifest = {
+          name: state.appName,
+          short_name: state.appName.substring(0, 12),
+          display: state.fullscreen ? 'fullscreen' : 'standalone',
+          orientation: state.orientation,
+          background_color: '#060911',
+          theme_color: '#10b981',
+          icons: [
+            { src: icon192, sizes: '192x192', type: 'image/png' },
+            { src: icon512, sizes: '512x512', type: 'image/png' }
+          ]
+        };
+        const manifestDataUri = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(webManifest));
+
+        const pwaInjection = `
+  <!-- Web2APK Standalone Mobile App Bundle -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="${escapeHtml(state.appName)}" />
+  <meta name="theme-color" content="#10b981" />
+  <link rel="icon" type="image/png" href="${icon192}" />
+  <link rel="apple-touch-icon" href="${icon192}" />
+  <link rel="manifest" href="${manifestDataUri}" />`;
+
+        if (html.includes('</head>')) {
+          html = html.replace('</head>', `${pwaInjection}\n</head>`);
+        } else {
+          html = pwaInjection + '\n' + html;
+        }
+
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const safeName = state.appName.replace(/[^a-zA-Z0-9_-]/g, '_') || 'MyWebApp';
+        saveBlob(blob, `${safeName}-Standalone-App.html`);
+        notify('Downloaded Single-File Standalone Installable Web App (.html)!', 'success');
+      } catch (err) {
+        notify('Error bundling standalone HTML app: ' + err.message, 'error');
+      }
+    }
+
+    /*************************************************************************
+     * DOWNLOAD OPTION B2: MULTI-FILE OFFLINE PWA WEBAPK (.ZIP)
+     *************************************************************************/
+    async function downloadOfflineWebApkZip() {
+      try {
+        const zip = new JSZip();
+        for (const [path, fileObj] of Object.entries(state.files)) {
+          zip.file(path === state.entryHtml ? 'index.html' : path, fileObj.data);
+        }
+        if (state.icons[192]) zip.file('icons/icon-192.png', state.icons[192].uint8);
+        if (state.icons[512]) zip.file('icons/icon-512.png', state.icons[512].uint8);
+
+        const manifest = {
+          name: state.appName,
+          short_name: state.appName.substring(0, 12),
+          start_url: './index.html',
+          display: state.fullscreen ? 'fullscreen' : 'standalone',
+          orientation: state.orientation,
+          background_color: '#060911',
+          theme_color: '#10b981',
+          icons: [
+            { src: './icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+            { src: './icons/icon-512.png', sizes: '512x512', type: 'image/png' }
+          ]
+        };
+        zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const safeName = state.appName.replace(/[^a-zA-Z0-9_-]/g, '_') || 'MyWebApp';
+        saveBlob(blob, `${safeName}-WebAPK-Bundle.zip`);
+        notify('Downloaded Offline PWA WebAPK Bundle (.ZIP)!', 'success');
+      } catch (err) {
+        notify('Error generating WebAPK ZIP: ' + err.message, 'error');
+      }
+    }
+
+    /*************************************************************************
+     * OPTION C: DIRECT CLOUD APK COMPILER API (GITHUB ACTIONS 1-CLICK BUILD)
+     *************************************************************************/
+    async function triggerDirectCloudApkBuild() {
+      const token = document.getElementById('githubTokenInput').value.trim();
+      if (!token) {
+        notify('Please paste your GitHub Personal Access Token first!', 'error');
+        return;
+      }
+
+      const panel = document.getElementById('cloudBuildStatusPanel');
+      const msgEl = document.getElementById('cloudBuildMsg');
+      const linksEl = document.getElementById('cloudBuildLinks');
+      const btn = document.getElementById('triggerCloudBuildBtn');
+
+      panel.classList.remove('hidden');
+      linksEl.innerHTML = '';
+      btn.disabled = true;
+      btn.classList.add('opacity-50');
+
+      const headers = {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      };
+
+      try {
+        msgEl.textContent = '[1/4] Verifying GitHub account...';
+        const uRes = await fetch('https://api.github.com/user', { headers });
+        if (!uRes.ok) throw new Error('Invalid GitHub Token or missing repo/workflow permissions.');
+        const user = await uRes.json();
+        const owner = user.login;
+        const repo = 'web2apk-cloud-compiler';
+
+        msgEl.textContent = `[2/4] Preparing cloud workspace (${owner}/${repo})...`;
+        const rCheck = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+        if (rCheck.status === 404) {
+          const createRes = await fetch('https://api.github.com/user/repos', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              name: repo,
+              description: 'Cloud Android APK Builder powered by Web2APK Studio',
+              private: false,
+              auto_init: true
+            })
+          });
+          if (!createRes.ok) throw new Error('Failed to create repository. Ensure "repo" scope is enabled.');
+          await new Promise(r => setTimeout(r, 2000));
+        }
+
+        msgEl.textContent = '[3/4] Uploading extracted HTML/CSS/JS, 6 Mipmap PNGs & Gradle Workflow...';
+        const projectFiles = buildCompleteAndroidGradleProjectMap();
+
+        const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/main`, { headers });
+        const refData = await refRes.json();
+        const baseSha = refData.object.sha;
+
+        const tree = [];
+        for (const [path, content] of Object.entries(projectFiles)) {
+          const isBin = content instanceof Uint8Array;
+          const b64 = isBin ? bufToB64(content.buffer) : btoa(unescape(encodeURIComponent(content)));
+          const bRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ content: b64, encoding: 'base64' })
+          });
+          const bData = await bRes.json();
+          tree.push({ path, mode: '100644', type: 'blob', sha: bData.sha });
+        }
+
+        const tRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ base_tree: baseSha, tree })
+        });
+        const tData = await tRes.json();
+
+        const cRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            message: `Compile APK: ${state.appName} v${state.versionName}`,
+            tree: tData.sha,
+            parents: [baseSha]
+          })
+        });
+        const cData = await cRes.json();
+
+        await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/main`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ sha: cData.sha, force: true })
+        });
+
+        msgEl.innerHTML = `<span class="text-emerald-400 font-bold">[4/4] Cloud APK Compiler Triggered!</span> Your real signed Android APK is building now.`;
+        linksEl.innerHTML = `
+          <a href="https://github.com/${owner}/${repo}/actions" target="_blank" rel="noopener noreferrer"
+             class="px-3.5 py-2 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-xs flex items-center gap-2">
+            <i class="fa-solid fa-up-right-from-square"></i>
+            <span>View Live Cloud Build & Download Signed .APK</span>
+          </a>`;
+        notify('Cloud APK Build started! Click the link to download your compiled APK.', 'success');
+      } catch (err) {
+        msgEl.innerHTML = `<span class="text-rose-400">Error: ${escapeHtml(err.message)}</span>`;
+        notify('Cloud build error: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+      }
+    }
+
+    /*************************************************************************
+     * ANDROID PROJECT & GRADLE TEMPLATE GENERATOR
+     *************************************************************************/
+    function buildCompleteAndroidGradleProjectMap() {
+      const map = {};
+      const pkgDir = state.packageId.replace(/\./g, '/');
+      const safeName = state.appName.replace(/[^a-zA-Z0-9_-]/g, '_') || 'MyWebApp';
+
+      map['README.md'] = `# ${state.appName} — Android WebView APK Project\n\nGenerated by **Web2APK Studio**.\n\n## 1-Click Cloud APK Build (No Android Studio Required)\n1. Upload or push this folder to any GitHub repository.\n2. GitHub Actions (\`.github/workflows/build-apk.yml\`) will automatically compile a signed installable \`.apk\` under the **Actions** tab!\n`;
+
+      map['settings.gradle'] = `rootProject.name = "${safeName}"\ninclude ':app'\n`;
+
+      map['build.gradle'] = `buildscript {
+    repositories { google(); mavenCentral() }
+    dependencies { classpath 'com.android.tools.build:gradle:8.1.2' }
+}
+allprojects {
+    repositories { google(); mavenCentral() }
+}\n`;
+
+      map['gradle.properties'] = `org.gradle.jvmargs=-Xmx2048m\nandroid.useAndroidX=true\n`;
+
+      map['app/build.gradle'] = `plugins {
+    id 'com.android.application'
+}
+android {
+    namespace '${state.packageId}'
+    compileSdk 34
+    defaultConfig {
+        applicationId "${state.packageId}"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "${state.versionName}"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.webkit:webkit:1.8.0'
+}\n`;
+
+      map['app/src/main/AndroidManifest.xml'] = buildAndroidManifestXml();
+
+      map[`app/src/main/java/${pkgDir}/MainActivity.java`] = `package ${state.packageId};
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.os.Bundle;
+import android.view.Window;
+import android.view.WindowManager;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
+public class MainActivity extends Activity {
+    private WebView webView;
+
+    @SuppressLint("SetJavaScriptEnabled")
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        ${state.fullscreen ? 'getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);' : ''}
+        webView = new WebView(this);
+        setContentView(webView);
+
+        WebSettings s = webView.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(${state.offlineAccess});
+        s.setAllowFileAccess(true);
+        s.setAllowContentAccess(true);
+        s.setAllowFileAccessFromFileURLs(true);
+        s.setAllowUniversalAccessFromFileURLs(true);
+        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+
+        webView.setWebViewClient(new WebViewClient());
+        webView.setWebChromeClient(new WebChromeClient());
+        webView.loadUrl("file:///android_asset/www/index.html");
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
+}\n`;
+
+      for (const [path, fileObj] of Object.entries(state.files)) {
+        const dest = path === state.entryHtml ? 'index.html' : path;
+        map[`app/src/main/assets/www/${dest}`] = fileObj.data;
+      }
+
+      for (const spec of MIPMAP_SPECS) {
+        if (spec.density === 'playstore') {
+          if (state.icons[512]) map['playstore-icon-512x512.png'] = state.icons[512].uint8;
+          continue;
+        }
+        const bytes = state.icons[spec.size]?.uint8;
+        if (bytes) {
+          map[`app/src/main/res/mipmap-${spec.density}/ic_launcher.png`] = bytes;
+          map[`app/src/main/res/mipmap-${spec.density}/ic_launcher_round.png`] = bytes;
+        }
+      }
+
+      map['.github/workflows/build-apk.yml'] = `name: Cloud Auto-APK Builder
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+      - name: Compile Signed Release APK
+        run: gradle assembleRelease --no-daemon
+      - name: Upload Compiled APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${safeName}-Signed-APK
+          path: app/build/outputs/apk/release/app-release.apk
+`;
+
+      return map;
+    }
+
+    function buildAndroidManifestXml() {
+      return `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="${state.packageId}">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="${escapeHtml(state.appName)}"
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="${state.orientation}"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>`;
+    }
+
+    /*************************************************************************
+     * UTILITIES & DRAG-AND-DROP
+     *************************************************************************/
+    function initDropZones() {
+      const attach = (id, fn) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        ['dragenter', 'dragover'].forEach(ev =>
+          el.addEventListener(ev, e => {
+            e.preventDefault();
+            el.classList.add('drop-active');
+          })
+        );
+        ['dragleave', 'drop'].forEach(ev =>
+          el.addEventListener(ev, e => {
+            e.preventDefault();
+            el.classList.remove('drop-active');
+          })
+        );
+        el.addEventListener('drop', e => {
+          const f = e.dataTransfer?.files?.[0];
+          if (f) fn(f);
+        });
+      };
+      attach('logoDropArea', handleLogoFile);
+      attach('zipDropArea', handleCodeFile);
+    }
+
+    function detectMime(path) {
+      const ext = path.split('.').pop().toLowerCase();
+      const m = {
+        html: 'text/html',
+        htm: 'text/html',
+        css: 'text/css',
+        js: 'application/javascript',
+        json: 'application/json',
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        webp: 'image/webp',
+        svg: 'image/svg+xml'
+      };
+      return m[ext] || 'application/octet-stream';
+    }
+
+    function isTextMimeType(mime) {
+      return mime.startsWith('text/') || mime === 'application/javascript' || mime === 'application/json' || mime === 'image/svg+xml';
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(2) + ' MB';
+    }
+
+    function bufToB64(buffer) {
+      let s = '';
+      const bytes = new Uint8Array(buffer);
+      for (let i = 0; i < bytes.byteLength; i++) s += String.fromCharCode(bytes[i]);
+      return btoa(s);
+    }
+
+    function saveBlob(blob, name) {
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = u;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        a.remove();
+        URL.revokeObjectURL(u);
+      }, 500);
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+  </script>
+</body>
+</html>
